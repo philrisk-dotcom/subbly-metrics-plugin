@@ -7,7 +7,7 @@ The dashboard is an artifact in your own Claude account. It reads your store thr
 ## What you need
 
 - Claude Code, signed in with your claude.ai account
-- Your Subbly connector added in claude.ai Settings → Connectors
+- Your Subbly MCP connector added in claude.ai Settings → Connectors
 
 ## Install
 
