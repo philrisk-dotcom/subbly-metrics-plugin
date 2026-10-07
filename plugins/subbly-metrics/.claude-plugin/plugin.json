@@ -1,0 +1,7 @@
+{
+  "name": "subbly-metrics",
+  "description": "Builds a subscription metrics dashboard (MRR, churn, cohorts, cash flow) for your Subbly store as a private artifact in your own Claude account, using your own Subbly connector.",
+  "version": "0.1.0",
+  "author": { "name": "Subbly" },
+  "keywords": ["subbly", "subscriptions", "mrr", "churn", "dashboard", "metrics"]
+}

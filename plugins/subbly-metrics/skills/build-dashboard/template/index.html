@@ -1,0 +1,978 @@
+<title>__STORE_NAME__ Metrics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an operator console. Identity + sync bar, tab row, range controls, KPI strip, then a two-column grid of chart cards that stacks on phones. */
+:root {
+  --bg: #f4f6f8; --surface: #ffffff; --surface-2: #eef1f4; --ink: #121820; --ink-2: #4f5a68; --ink-3: #7a8594;
+  --rule: #dfe4ea; --accent: #2a78d6; --accent-ink: #1c5cab; --focus: #2a78d6; --seg-on: #1b2a3c; --seg-on-ink: #ffffff;
+  --s1: #2a78d6; --s2: #1baf7a; --s3: #eda100; --s4: #4a3aa7; --s5: #e34948; --s-orange: #eb6834;
+  --seq-strong: #1c5cab;
+  --good: #0ca30c; --warning: #fab219; --critical: #d03b3b; --good-ink: #0b6e0b; --critical-ink: #b42f2f;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1216; --surface: #171b21; --surface-2: #1f242b; --ink: #eef1f5; --ink-2: #aab3bf; --ink-3: #7f8a98;
+  --rule: #2a3038; --accent: #3987e5; --accent-ink: #86b6ef; --focus: #6da7ec; --seg-on: #dfe7f1; --seg-on-ink: #0f1216;
+  --s1: #3987e5; --s2: #199e70; --s3: #c98500; --s4: #9085e9; --s5: #e66767; --s-orange: #d95926;
+  --seq-strong: #6da7ec; --good-ink: #4cc24c; --critical-ink: #ef7d7d;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0f1216; --surface: #171b21; --surface-2: #1f242b; --ink: #eef1f5; --ink-2: #aab3bf; --ink-3: #7f8a98;
+  --rule: #2a3038; --accent: #3987e5; --accent-ink: #86b6ef; --focus: #6da7ec; --seg-on: #dfe7f1; --seg-on-ink: #0f1216;
+  --s1: #3987e5; --s2: #199e70; --s3: #c98500; --s4: #9085e9; --s5: #e66767; --s-orange: #d95926;
+  --seq-strong: #6da7ec; --good-ink: #4cc24c; --critical-ink: #ef7d7d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.45; }
+.app { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 18px 48px; display: grid; gap: 18px; }
+@media (max-width: 520px) { .app { padding-inline: 16px; } }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+button, select, input { font: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; justify-content: space-between; }
+.ident { display: grid; gap: 2px; min-width: 0; }
+.eyebrow { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.ident h1 { font-family: var(--font-display); font-weight: 700; font-size: 28px; letter-spacing: -.01em; }
+.ident .sub { color: var(--ink-2); font-size: 13px; }
+.syncbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--rule); font-size: 12.5px; color: var(--ink-2); }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); flex: none; }
+.chip[data-tone="good"] .dot { background: var(--good); }
+.chip[data-tone="busy"] .dot { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+.chip[data-tone="warn"] .dot { background: var(--warning); }
+.chip[data-tone="bad"] .dot { background: var(--critical); }
+@keyframes pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .chip[data-tone="busy"] .dot { animation: none; } }
+.btn { appearance: none; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); padding: 7px 14px; border-radius: 8px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--ink-3); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn[disabled] { opacity: .55; cursor: default; }
+
+.notice { border: 1px solid var(--rule); border-left: 3px solid var(--warning); background: var(--surface); border-radius: 8px; padding: 10px 14px; color: var(--ink-2); }
+.notice[data-tone="bad"] { border-left-color: var(--critical); }
+.notice strong { color: var(--ink); }
+
+/* tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--rule); overflow-x: auto; scrollbar-width: none; }
+.tabs button { appearance: none; background: none; border: 0; padding: 10px 14px; color: var(--ink-2); cursor: pointer; font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs button:hover { color: var(--ink); }
+
+/* range controls */
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.field { appearance: none; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 7px 10px; font-size: 13.5px; font-weight: 500; }
+select.field { padding-right: 30px; background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%), linear-gradient(135deg, var(--ink-2) 50%, transparent 50%); background-position: right 14px center, right 9px center; background-size: 5px 5px; background-repeat: no-repeat; }
+.custom { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-3); }
+.custom .field { font-family: var(--font-data); font-size: 12.5px; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { appearance: none; border: 0; background: none; color: var(--ink-2); padding: 7px 13px; font-size: 12.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-checked="true"] { background: var(--seg-on); color: var(--seg-on-ink); }
+.seg button:disabled { opacity: .35; cursor: not-allowed; }
+.ctl-note { color: var(--ink-3); font-size: 12.5px; }
+
+/* KPI strip */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; }
+.kpi { background: var(--surface); padding: 14px 16px; display: grid; gap: 4px; min-width: 0; }
+.kpi .label { font-size: 12px; color: var(--ink-2); font-weight: 500; }
+.kpi .value { font-family: var(--font-display); font-size: 26px; font-weight: 600; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.kpi .delta { font-size: 12px; color: var(--ink-3); }
+.delta .up { color: var(--good-ink); } .delta .down { color: var(--critical-ink); }
+
+/* cards */
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.grid .wide { grid-column: 1 / -1; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 14px 16px 12px; display: grid; gap: 10px; min-width: 0; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.card-head h2 { font-size: 15px; font-weight: 600; font-family: var(--font-body); }
+.card-head p { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.toggle { appearance: none; border: 1px solid var(--rule); background: none; color: var(--ink-2); font-size: 12px; padding: 3px 9px; border-radius: 6px; cursor: pointer; flex: none; }
+.toggle:hover { color: var(--ink); border-color: var(--ink-3); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.chart { position: relative; min-height: 220px; }
+.chart svg { display: block; width: 100%; height: 220px; overflow: visible; }
+.chart text { font-family: var(--font-data); font-size: 10.5px; fill: var(--ink-3); }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 18px rgb(0 0 0 / .12); min-width: 150px; z-index: 2; }
+.tip b { display: block; margin-bottom: 4px; font-weight: 600; }
+.tip .row { display: flex; justify-content: space-between; gap: 14px; }
+.tip .row span:first-child { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.tip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.tip .total { border-top: 1px solid var(--rule); margin-top: 4px; padding-top: 4px; font-weight: 600; }
+.tablewrap { overflow-x: auto; max-height: 300px; overflow-y: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--ink-2); font-weight: 500; position: sticky; top: 0; background: var(--surface); }
+td { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+td.name { font-family: var(--font-body); max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.empty { color: var(--ink-3); font-size: 13px; padding: 18px 0; }
+.heat th, .heat td { text-align: center; }
+.heat th:first-child, .heat td:first-child { text-align: left; }
+.heat th:nth-child(2), .heat td:nth-child(2) { text-align: right; padding-right: 14px; }
+.heat td { min-width: 52px; }
+
+/* first-run panel */
+.firstrun { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 28px; display: grid; gap: 14px; max-width: 680px; }
+.firstrun h2 { font-family: var(--font-display); font-size: 22px; font-weight: 600; }
+.firstrun p { margin: 0; color: var(--ink-2); max-width: 60ch; }
+.steps { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.steps li { display: flex; justify-content: space-between; gap: 16px; padding: 8px 12px; background: var(--surface-2); border-radius: 8px; font-size: 13px; }
+.steps li .state { color: var(--ink-3); font-family: var(--font-data); }
+.steps li[data-done] .state { color: var(--good-ink); }
+.foot { color: var(--ink-3); font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+
+/* lock screen */
+.lock { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding-inline: 16px; padding-block: 24px; }
+.lock form { width: min(360px, 100%); background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 26px 24px; display: grid; gap: 14px; }
+.lock h1 { font-family: var(--font-display); font-size: 24px; font-weight: 700; }
+.lock p { margin: 0; color: var(--ink-2); font-size: 13px; }
+.lock label { display: grid; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
+.lock .field { width: 100%; font-family: var(--font-body); font-size: 15px; padding: 9px 11px; }
+.lock .err { color: var(--critical-ink); font-size: 12.5px; min-height: 1em; }
+</style>
+
+<div class="lock" id="lock" hidden>
+  <form id="lockForm" autocomplete="off">
+    <span class="eyebrow">Subscription metrics · Subbly</span>
+    <h1 id="lockName">__STORE_NAME__</h1>
+    <p>Enter the dashboard password to see the figures.</p>
+    <label for="lockPass">Password<input class="field" type="password" id="lockPass" autocomplete="current-password" required></label>
+    <span class="err" id="lockErr" role="alert"></span>
+    <button class="btn primary" type="submit">Unlock</button>
+  </form>
+</div>
+
+<div class="app" id="app" hidden>
+  <header class="top">
+    <div class="ident">
+      <span class="eyebrow">Subscription metrics · Subbly</span>
+      <h1 id="merchantName">__STORE_NAME__</h1>
+      <span class="sub" id="identSub">Recurring revenue, retention and cash, from Subbly invoices</span>
+    </div>
+    <div class="syncbar">
+      <span class="chip" id="syncChip" data-tone="idle"><span class="dot"></span><span id="syncText">Connecting…</span></span>
+      <button class="btn" id="refreshBtn" type="button" hidden>Refresh</button>
+    </div>
+  </header>
+
+  <div class="notice" id="notice" hidden></div>
+
+  <section class="firstrun" id="firstRun" hidden>
+    <h2>Pull this store's data from Subbly</h2>
+    <p>The first pull reads every customer, subscription, invoice and failed charge through the <strong id="serverName">__CONNECTOR__</strong> connector and saves a compact copy with this dashboard. After that the dashboard opens instantly and only fetches what changed.</p>
+    <ul class="steps" id="steps">
+      <li data-step="Customers"><span>Customers</span><span class="state">waiting</span></li>
+      <li data-step="Subscriptions"><span>Subscriptions</span><span class="state">waiting</span></li>
+      <li data-step="Invoices"><span>Invoices</span><span class="state">waiting</span></li>
+      <li data-step="Failed charges"><span>Failed charges</span><span class="state">waiting</span></li>
+      <li data-step="Saving"><span>Saving and calculating</span><span class="state">waiting</span></li>
+    </ul>
+    <div><button class="btn primary" id="pullBtn" type="button">Pull data from Subbly</button></div>
+  </section>
+
+  <nav class="tabs" role="tablist" id="tabs" hidden>
+    <button role="tab" id="tab-overview" aria-selected="true" data-tab="overview">Overview</button>
+    <button role="tab" id="tab-growth" aria-selected="false" data-tab="growth">Growth</button>
+    <button role="tab" id="tab-retention" aria-selected="false" data-tab="retention">Retention</button>
+    <button role="tab" id="tab-cash" aria-selected="false" data-tab="cash">Cash flow</button>
+  </nav>
+
+  <div class="controls" id="controls" hidden>
+    <select class="field" id="rangeSel" aria-label="Date range">
+      <option value="30d">Last 30 days</option>
+      <option value="3m">Last 3 months</option>
+      <option value="12m">Last 12 months</option>
+      <option value="24m">Last 24 months</option>
+      <option value="ytd">This year</option>
+      <option value="all">All time</option>
+      <option value="custom">Custom range…</option>
+    </select>
+    <span class="custom" id="customRange" hidden>
+      <input class="field" type="date" id="fromDate" aria-label="From date">
+      <span>to</span>
+      <input class="field" type="date" id="toDate" aria-label="To date">
+    </span>
+    <div class="seg" role="radiogroup" aria-label="Group by" id="intervalSeg">
+      <button type="button" role="radio" data-interval="day" aria-checked="false">Day</button>
+      <button type="button" role="radio" data-interval="week" aria-checked="false">Week</button>
+      <button type="button" role="radio" data-interval="month" aria-checked="true">Month</button>
+      <button type="button" role="radio" data-interval="quarter" aria-checked="false">Quarter</button>
+      <button type="button" role="radio" data-interval="year" aria-checked="false">Year</button>
+    </div>
+    <span class="ctl-note" id="rangeNote"></span>
+  </div>
+
+  <main id="panels"></main>
+  <footer class="foot" id="foot"></footer>
+</div>
+
+<script src="engine.js"></script>
+<script>
+(() => {
+'use strict';
+/* ---- merchant config: the only merchant-specific part of this page ---- */
+const MERCHANT = { key: '__STORE_KEY__', server: '__CONNECTOR__', name: '__STORE_NAME__' };
+
+const SM = window.SubblyMetrics;
+const P = `merchants/${MERCHANT.key}`;
+const DAY = 86400;
+const STALE_AFTER = 6 * 3600;           // auto-refresh on open when older than this
+const MAX_BUCKETS = 400;                // finer intervals are switched off past this
+const COLS = {
+  cust: { created: 1, per: 1500 },
+  sub: { created: 3, per: 1500 },
+  inv: { created: 4, per: 900 },
+  ftx: { created: 4, per: 2000 },
+};
+const $ = (id) => document.getElementById(id);
+const nowS = () => Math.floor(Date.now() / 1000);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const tabId = Math.random().toString(36).slice(2);
+
+let db = null, mcp = null, perms = null;
+let summary = null, meta = null, busy = false, activeTab = 'overview';
+let rows = null, model = null;          // the stored records, loaded after first paint
+let sel = { range: '12m', interval: 'month', from: '', to: '' };
+try {
+  const t = localStorage.getItem('sm-tab'); if (t) activeTab = t;
+  const s = JSON.parse(localStorage.getItem('sm-range') || 'null'); if (s && s.range) sel = { ...sel, ...s };
+} catch (e) {}
+if (/^#(overview|growth|retention|cash)$/.test(location.hash)) activeTab = location.hash.slice(1);
+
+/* ---------- formatting ---------- */
+let CUR = 'USD';
+const fmtMoney = (cents, compact) => {
+  const v = (cents || 0) / 100;
+  try {
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency: CUR,
+      notation: compact && Math.abs(v) >= 10000 ? 'compact' : 'standard',
+      maximumFractionDigits: compact || Math.abs(v) >= 1000 ? 0 : 2 }).format(v);
+  } catch (e) { return v.toFixed(0); }
+};
+const fmtPct = (x, d = 1) => (x == null ? '–' : `${(x * 100).toFixed(d)}%`);
+const fmtNum = (n) => (n == null ? '–' : new Intl.NumberFormat().format(Math.round(n)));
+const dateLabel = (t) => new Date(t * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const isoDay = (t) => new Date(t * 1000).toISOString().slice(0, 10);
+const INTERVAL_NOUN = { day: 'Day', week: 'Week', month: 'Month', quarter: 'Quarter', year: 'Year' };
+function ago(t) {
+  const s = nowS() - t;
+  if (s < 90) return 'just now';
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  return `${Math.round(s / 86400)} days ago`;
+}
+function delta(cur, prev, kind) {
+  if (prev == null || prev === 0) return '<span>no earlier figure</span>';
+  const ch = (cur - prev) / Math.abs(prev);
+  const good = kind === 'lowerIsBetter' ? ch <= 0 : ch >= 0;
+  const cls = Math.abs(ch) < 0.0005 ? '' : good ? 'up' : 'down';
+  const arrow = ch > 0 ? '▲' : ch < 0 ? '▼' : '';
+  return `<span class="${cls}">${arrow} ${fmtPct(Math.abs(ch))}</span>`;
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ---------- status + notices ---------- */
+function setChip(tone, text) {
+  $('syncChip').dataset.tone = tone;
+  $('syncText').textContent = text;
+}
+function showNotice(html, tone) {
+  const n = $('notice');
+  if (!html) { n.hidden = true; return; }
+  n.innerHTML = html; n.dataset.tone = tone || 'warn'; n.hidden = false;
+}
+function errorCopy(e) {
+  const code = e && e.code;
+  const s = `<strong>${esc(MERCHANT.server)}</strong>`;
+  switch (code) {
+    case 'needs_reauth': return `Your ${s} connector needs signing in again. Reconnect it in claude.ai Settings → Connectors, then press Refresh.`;
+    case 'server_not_connected': return `To refresh this data, add the ${s} connector in claude.ai Settings → Connectors. The last saved figures are still shown.`;
+    case 'selection_required': return `You have more than one ${s} connector. Choose one when Claude asks, then press Refresh.`;
+    case 'not_in_manifest': return `This dashboard isn't allowed to use ${s} for you. Allow the connector for this page, then press Refresh.`;
+    case 'blocked_by_policy': case 'approval_required': return `Your organization's policy stops this dashboard reading ${s}.`;
+    case 'tool_error': return `Subbly returned an error: ${esc(e.message)}`;
+    case 'server_unavailable': case 'upstream_error': return `Subbly didn't respond. Wait a minute, then press Refresh.`;
+    case 'quota_exceeded': return `This dashboard's storage is full, so the new data couldn't be saved.`;
+    case 'not_granted': case 'capability_disabled': case 'capability_removed':
+      return `This view can't reach Subbly. Open the dashboard in Claude to refresh it.`;
+    default: return `The refresh stopped: ${esc(e && e.message ? e.message : String(e))}`;
+  }
+}
+
+/* ---------- tabs ---------- */
+function selectTab(name) {
+  activeTab = name;
+  try { localStorage.setItem('sm-tab', name); } catch (e) {}
+  document.querySelectorAll('#tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+  document.querySelectorAll('#panels > section').forEach((s) => { s.hidden = s.dataset.tab !== name; });
+  document.querySelectorAll(`#panels > section[data-tab="${name}"] .chart`).forEach((c) => c._draw && c._draw());
+}
+$('tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) selectTab(b.dataset.tab); });
+
+/* ---------- date range + interval ---------- */
+const firstData = () => (model ? model.firstInvoice : summary && summary.firstInvoice) || 0;
+function rangeBounds() {
+  const now = nowS(), d = new Date(now * 1000);
+  const y = d.getUTCFullYear(), m = d.getUTCMonth(), day = d.getUTCDate();
+  let from, to = now;
+  switch (sel.range) {
+    case '30d': from = Date.UTC(y, m, day - 29) / 1000; break;
+    case '3m': from = Date.UTC(y, m - 3, day + 1) / 1000; break;
+    case '12m': from = Date.UTC(y, m - 11, 1) / 1000; break;
+    case '24m': from = Date.UTC(y, m - 23, 1) / 1000; break;
+    case 'ytd': from = Date.UTC(y, 0, 1) / 1000; break;
+    case 'all': from = firstData() || Date.UTC(y, m - 11, 1) / 1000; break;
+    default: {
+      const f = Date.parse(`${sel.from}T00:00:00Z`) / 1000, t = Date.parse(`${sel.to}T23:59:59Z`) / 1000;
+      from = isFinite(f) ? f : Date.UTC(y, m - 11, 1) / 1000;
+      to = isFinite(t) ? Math.min(t, now) : now;
+      if (from > to) [from, to] = [to - DAY, from];
+    }
+  }
+  // no empty stretch before the store's first invoice
+  const first = firstData();
+  if (first && from < first) from = SM.floorTo(first, 'day');
+  return { from, to, now };
+}
+const PRESET_INTERVAL = { '30d': 'day', '3m': 'week', '12m': 'month', '24m': 'month', ytd: 'month', all: 'month' };
+function syncControls() {
+  $('rangeSel').value = sel.range;
+  $('customRange').hidden = sel.range !== 'custom';
+  const { from, to } = rangeBounds();
+  if (sel.range === 'custom') { $('fromDate').value = sel.from || isoDay(from); $('toDate').value = sel.to || isoDay(to); }
+  // switch off intervals that would draw too many points, and step up if the current one is off
+  let ok = null;
+  document.querySelectorAll('#intervalSeg button').forEach((b) => {
+    const tooMany = SM.bucketCount(from, to, b.dataset.interval) > MAX_BUCKETS;
+    b.disabled = tooMany;
+    b.title = tooMany ? 'Too many points for this date range' : '';
+    if (!tooMany && !ok) ok = b.dataset.interval;
+  });
+  if ($(`intervalSeg`).querySelector(`[data-interval="${sel.interval}"]`).disabled) sel.interval = ok || 'month';
+  document.querySelectorAll('#intervalSeg button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.interval === sel.interval)));
+  $('rangeNote').textContent = model ? `${dateLabel(from)} – ${dateLabel(to)}` : 'Loading stored records…';
+  document.querySelectorAll('#controls select, #controls input, #intervalSeg button').forEach((c) => {
+    if (!model) c.setAttribute('aria-disabled', 'true'); else c.removeAttribute('aria-disabled');
+  });
+  try { localStorage.setItem('sm-range', JSON.stringify(sel)); } catch (e) {}
+}
+function onControlsChange() { syncControls(); render(); }
+$('rangeSel').addEventListener('change', (e) => {
+  sel.range = e.target.value;
+  if (sel.range === 'custom') {
+    const { from, to } = rangeBounds();
+    sel.from = sel.from || isoDay(from); sel.to = sel.to || isoDay(to);
+  } else sel.interval = PRESET_INTERVAL[sel.range];
+  onControlsChange();
+});
+$('fromDate').addEventListener('change', (e) => { sel.from = e.target.value; onControlsChange(); });
+$('toDate').addEventListener('change', (e) => { sel.to = e.target.value; onControlsChange(); });
+$('intervalSeg').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-interval]');
+  if (!b || b.disabled || !model) return;
+  sel.interval = b.dataset.interval;
+  onControlsChange();
+});
+
+/* ---------- charts (hand-rolled SVG) ---------- */
+function niceTicks(lo, hi, count) {
+  if (lo === hi) { hi = lo + 1; }
+  const span = hi - lo, raw = span / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) || 10 * mag;
+  const start = Math.floor(lo / step) * step, end = Math.ceil(hi / step) * step;
+  const ticks = [];
+  for (let v = start; v <= end + step / 2; v += step) ticks.push(Math.abs(v) < step / 1e6 ? 0 : v);
+  return ticks;
+}
+const SVGNS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent) {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+
+/* opts: { kind: 'line'|'bar', stacked, buckets, series:[{label, color, values}], fmt, axisFmt, totalLabel } */
+function drawChart(box, opts) {
+  box.innerHTML = '';
+  const W = Math.max(280, box.clientWidth || 600), H = 220;
+  const m = { l: 58, r: 14, t: 10, b: 26 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const B = opts.buckets, n = B.length;
+  if (!n) { box.innerHTML = '<div class="empty">No data in this period.</div>'; return; }
+  let lo = 0, hi = 0;
+  for (let i = 0; i < n; i++) {
+    if (opts.stacked) {
+      let p = 0, q = 0;
+      for (const s of opts.series) { const v = s.values[i] || 0; if (v >= 0) p += v; else q += v; }
+      hi = Math.max(hi, p); lo = Math.min(lo, q);
+    } else for (const s of opts.series) { const v = s.values[i]; if (v != null) { hi = Math.max(hi, v); lo = Math.min(lo, v); } }
+  }
+  const ticks = niceTicks(lo, hi, 4);
+  const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+  const Y = (v) => m.t + ih - ((v - y0) / (y1 - y0)) * ih;
+  const band = iw / n, X = (i) => m.l + i * band + band / 2;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': opts.aria || '' }, box);
+  const g = el('g', {}, svg);
+  for (const t of ticks) {
+    el('line', { x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t), style: `stroke:var(--rule);stroke-width:1${t === 0 ? '' : ';stroke-dasharray:2 3'}` }, g);
+    const tx = el('text', { x: m.l - 8, y: Y(t) + 3.5, 'text-anchor': 'end' }, g);
+    tx.textContent = (opts.axisFmt || opts.fmt)(t);
+  }
+  const every = Math.max(1, Math.ceil(n / Math.max(2, Math.min(7, Math.floor(iw / 64)))));
+  for (let i = n - 1; i >= 0; i -= every) {
+    const tx = el('text', { x: X(i), y: H - 6, 'text-anchor': 'middle' }, g);
+    tx.textContent = B[i].label;
+  }
+  if (opts.kind === 'bar') {
+    const gap = band > 6 ? 0.64 : 0.86;
+    const bw = Math.max(1, Math.min(28, band * gap));
+    for (let i = 0; i < n; i++) {
+      let pos = 0, neg = 0;
+      opts.series.forEach((s) => {
+        const v = s.values[i] || 0;
+        if (!v) return;
+        const a = v >= 0 ? pos : neg, b = a + v;
+        if (v >= 0) pos = b; else neg = b;
+        const top = Math.min(Y(a), Y(b)), h = Math.abs(Y(a) - Y(b));
+        if (h < 0.5) return;
+        el('rect', { x: X(i) - bw / 2, y: top + 1, width: bw, height: Math.max(1, h - 2), rx: Math.min(3, bw / 3), style: `fill:${s.color}${B[i].partial ? ';fill-opacity:.55' : ''}` }, g);
+      });
+    }
+  } else {
+    opts.series.forEach((s) => {
+      let d = '', last = null, first = null;
+      s.values.forEach((v, i) => {
+        if (v == null) { last = null; return; }
+        d += `${last == null ? 'M' : 'L'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`;
+        if (first == null) first = i;
+        last = i;
+      });
+      if (opts.series.length === 1 && first != null) {
+        const base = Y(Math.max(y0, 0)).toFixed(1);
+        el('path', { d: `${d}L${X(last).toFixed(1)},${base}L${X(first).toFixed(1)},${base}Z`, style: `fill:${s.color};fill-opacity:.1;stroke:none` }, g);
+      }
+      el('path', { d, style: `fill:none;stroke:${s.color};stroke-width:2;stroke-linejoin:round;stroke-linecap:round` }, g);
+      const li = s.values.map((v, i) => (v == null ? -1 : i)).filter((i) => i >= 0).pop();
+      if (li != null) el('circle', { cx: X(li), cy: Y(s.values[li]), r: 4, style: `fill:${s.color};stroke:var(--surface);stroke-width:2` }, g);
+    });
+  }
+  // hover layer
+  const guide = el('line', { y1: m.t, y2: m.t + ih, style: 'stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 3', visibility: 'hidden' }, svg);
+  const hit = el('rect', { x: m.l, y: m.t, width: iw, height: ih, style: 'fill:transparent' }, svg);
+  const tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; box.appendChild(tip);
+  const move = (ev) => {
+    const r = svg.getBoundingClientRect(), sx = W / r.width;
+    const x = (ev.clientX - r.left) * sx;
+    const i = Math.min(n - 1, Math.max(0, Math.floor((x - m.l) / band)));
+    guide.setAttribute('x1', X(i)); guide.setAttribute('x2', X(i)); guide.setAttribute('visibility', 'visible');
+    let total = 0, html = `<b>${esc(B[i].long)}${B[i].partial ? ' (so far)' : ''}</b>`;
+    for (const s of opts.series) {
+      const v = s.values[i]; total += v || 0;
+      html += `<div class="row"><span><i style="background:${s.color}"></i>${esc(s.label)}</span><span class="num">${v == null ? '–' : esc(s.fmt ? s.fmt(v) : opts.fmt(v))}</span></div>`;
+    }
+    if (opts.totalLabel) html += `<div class="row total"><span>${esc(opts.totalLabel)}</span><span class="num">${esc(opts.fmt(opts.totalValues ? opts.totalValues[i] : total))}</span></div>`;
+    if (opts.extra) html += opts.extra(i);
+    tip.innerHTML = html; tip.hidden = false;
+    const px = X(i) / sx, bw = box.clientWidth, tw = tip.offsetWidth;
+    tip.style.left = `${Math.min(Math.max(0, px + 12 + tw > bw ? px - tw - 12 : px + 12), bw - tw)}px`;
+    tip.style.top = '8px';
+  };
+  hit.addEventListener('pointermove', move);
+  hit.addEventListener('pointerdown', move);
+  hit.addEventListener('pointerleave', () => { tip.hidden = true; guide.setAttribute('visibility', 'hidden'); });
+}
+
+const ro = new ResizeObserver((entries) => {
+  for (const e of entries) {
+    const box = e.target;
+    const w = Math.round(e.contentRect.width);
+    if (box._w !== w && box._draw && !box.closest('section').hidden) { box._w = w; box._draw(); }
+  }
+});
+
+function chartCard(parent, { title, note, wide, opts }) {
+  const card = document.createElement('article');
+  card.className = 'card' + (wide ? ' wide' : '');
+  card.innerHTML = `<div class="card-head"><div><h2>${esc(title)}</h2>${note ? `<p>${esc(note)}</p>` : ''}</div><button class="toggle" type="button">Table</button></div>`;
+  if (opts.series.length > 1) {
+    const lg = document.createElement('div'); lg.className = 'legend';
+    lg.innerHTML = opts.series.map((s) => `<span><i style="background:${s.color}"></i>${esc(s.label)}</span>`).join('');
+    card.appendChild(lg);
+  }
+  const box = document.createElement('div'); box.className = 'chart'; card.appendChild(box);
+  const tbl = document.createElement('div'); tbl.className = 'tablewrap'; tbl.hidden = true; card.appendChild(tbl);
+  const sum = (i) => opts.totalValues ? opts.totalValues[i] : opts.series.reduce((a, s) => a + (s.values[i] || 0), 0);
+  const body = opts.buckets.map((b, i) => `<tr><td>${esc(b.long)}${b.partial ? ' (so far)' : ''}</td>${opts.series.map((s) => `<td>${s.values[i] == null ? '–' : esc((s.fmt || opts.fmt)(s.values[i]))}</td>`).join('')}${opts.totalLabel ? `<td>${esc(opts.fmt(sum(i)))}</td>` : ''}</tr>`).reverse().join('');
+  tbl.innerHTML = `<table><thead><tr><th>${esc(INTERVAL_NOUN[opts.interval] || 'Period')}</th>${opts.series.map((s) => `<th>${esc(s.label)}</th>`).join('')}${opts.totalLabel ? `<th>${esc(opts.totalLabel)}</th>` : ''}</tr></thead><tbody>${body}</tbody></table>`;
+  card.querySelector('.toggle').addEventListener('click', (e) => {
+    const showTable = tbl.hidden;
+    tbl.hidden = !showTable; box.hidden = showTable;
+    card.querySelector('.legend')?.toggleAttribute('hidden', showTable);
+    e.currentTarget.textContent = showTable ? 'Chart' : 'Table';
+    if (!showTable) box._draw();
+  });
+  box._draw = () => { if (!box.hidden) drawChart(box, opts); };
+  parent.appendChild(card);
+  ro.observe(box);
+  return card;
+}
+
+function kpiStrip(parent, items) {
+  const wrap = document.createElement('div'); wrap.className = 'kpis';
+  wrap.innerHTML = items.map((k) => `<div class="kpi"><span class="label">${esc(k.label)}</span><span class="value">${esc(k.value)}</span><span class="delta">${k.delta || '&nbsp;'}</span></div>`).join('');
+  parent.appendChild(wrap);
+}
+function tableCard(parent, { title, note, wide, head, rows: body, empty }) {
+  const card = document.createElement('article');
+  card.className = 'card' + (wide ? ' wide' : '');
+  card.innerHTML = `<div class="card-head"><div><h2>${esc(title)}</h2>${note ? `<p>${esc(note)}</p>` : ''}</div></div>` +
+    (body.length ? `<div class="tablewrap"><table><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${body.join('')}</tbody></table></div>`
+      : `<div class="empty">${esc(empty)}</div>`);
+  parent.appendChild(card);
+  return card;
+}
+
+/* ---------- what to draw: fresh from the records when loaded, else the saved summary ---------- */
+function currentData() {
+  if (model) {
+    const b = rangeBounds();
+    return { currency: model.currency, counts: model.counts, ...SM.overview(model, b.now),
+      view: SM.series(model, { from: b.from, to: b.to, interval: sel.interval, now: b.now }) };
+  }
+  if (summary && summary.version === 2) return summary;
+  return null;
+}
+
+/* ---------- render ---------- */
+function render() {
+  const panels = $('panels');
+  panels.innerHTML = '';
+  const D = currentData();
+  if (!D) {
+    $('tabs').hidden = true; $('controls').hidden = true;
+    if (summary || rows) panels.innerHTML = '<div class="empty">Loading the stored records…</div>';
+    return;
+  }
+  $('tabs').hidden = false; $('controls').hidden = false;
+  CUR = D.currency || 'USD';
+  const V = D.view, S = V.series, B = V.buckets, n = B.length;
+  const last = n - 1;
+  const lastFull = B[last] && B[last].partial && n > 1 ? last - 1 : last;
+  const name = (i) => B[i] ? B[i].long : '';
+  const soFar = (i) => (B[i] && B[i].partial ? ' so far' : '');
+  const money = (v) => fmtMoney(v);
+  const moneyC = (v) => fmtMoney(v, true);
+  const H = D.headline;
+  const base = { buckets: B, interval: V.interval };
+  const mkSection = (nm) => { const s = document.createElement('section'); s.dataset.tab = nm; s.style.display = 'grid'; s.style.gap = '16px'; panels.appendChild(s); return s; };
+  const per = INTERVAL_NOUN[V.interval].toLowerCase();
+
+  // Overview
+  const ov = mkSection('overview');
+  kpiStrip(ov, [
+    { label: 'MRR today', value: money(H.mrr), delta: `${delta(H.mrr, H.mrr30)} vs 30 days ago` },
+    { label: 'ARR today (MRR × 12)', value: moneyC(H.mrr * 12), delta: `${delta(H.mrr, H.mrr30)} vs 30 days ago` },
+    { label: 'Paying customers today', value: fmtNum(H.subscribers), delta: `${delta(H.subscribers, H.subscribers30)} vs 30 days ago` },
+    { label: 'Average MRR per customer', value: money(H.arpa), delta: `${delta(H.arpa, H.arpa30)} vs 30 days ago` },
+  ]);
+  const g1 = document.createElement('div'); g1.className = 'grid'; ov.appendChild(g1);
+  chartCard(g1, { title: 'Monthly recurring revenue', note: `MRR at the end of each ${per}; subscription and add-on charges spread over each renewal’s service period`, wide: true,
+    opts: { ...base, kind: 'line', fmt: money, axisFmt: moneyC, series: [{ label: 'MRR', color: 'var(--s1)', values: S.mrr }] } });
+  chartCard(g1, { title: 'MRR movements', note: `What added and removed recurring revenue each ${per}`,
+    opts: { ...base, kind: 'bar', stacked: true, fmt: money, axisFmt: moneyC, totalLabel: 'Net change', totalValues: S.net,
+      series: [
+        { label: 'New', color: 'var(--s1)', values: S.newMrr },
+        { label: 'Expansion', color: 'var(--s2)', values: S.expansion },
+        { label: 'Reactivation', color: 'var(--s3)', values: S.reactivation },
+        { label: 'Contraction', color: 'var(--s4)', values: S.contraction },
+        { label: 'Churn', color: 'var(--s5)', values: S.churn },
+      ] } });
+  const mvRow = (label, amt, cnt) => `<tr><td class="name">${label}</td><td>${cnt}</td><td>${money(amt)}</td></tr>`;
+  const mvRows = (i) => [
+    mvRow('New', S.newMrr[i], S.newCount[i]), mvRow('Expansion', S.expansion[i], S.expansionCount[i]),
+    mvRow('Reactivation', S.reactivation[i], S.reactivationCount[i]), mvRow('Contraction', S.contraction[i], S.contractionCount[i]),
+    mvRow('Churn', S.churn[i], S.churnCount[i]),
+    `<tr><td class="name"><strong>Net change</strong></td><td></td><td><strong>${money(S.net[i])}</strong></td></tr>`];
+  const sumOf = (a) => a.reduce((x, y) => x + (y || 0), 0);
+  tableCard(g1, { title: `MRR breakdown, whole range`, note: `${B[0].long} to ${B[last].long}`, head: ['Movement', 'Changes', 'MRR'], rows: [
+    mvRow('New', sumOf(S.newMrr), sumOf(S.newCount)), mvRow('Expansion', sumOf(S.expansion), sumOf(S.expansionCount)),
+    mvRow('Reactivation', sumOf(S.reactivation), sumOf(S.reactivationCount)), mvRow('Contraction', sumOf(S.contraction), sumOf(S.contractionCount)),
+    mvRow('Churn', sumOf(S.churn), sumOf(S.churnCount)),
+    `<tr><td class="name"><strong>Net change</strong></td><td></td><td><strong>${money(sumOf(S.net))}</strong></td></tr>`], empty: '' });
+  tableCard(g1, { title: `MRR breakdown, ${name(last)}${soFar(last)}`, head: ['Movement', 'Customers', 'MRR'], rows: mvRows(last), empty: '' });
+  tableCard(g1, { title: 'Newest paying customers', note: 'First subscription invoice in the last 30 days, by MRR', head: ['Customer', 'Since', 'MRR'],
+    rows: D.lists.newCustomers.map((c) => `<tr><td class="name">${esc(c.name)}</td><td>${dateLabel(c.since)}</td><td>${money(c.mrr)}</td></tr>`),
+    empty: 'No new paying customers in the last 30 days.' });
+  if (n > 1) tableCard(g1, { title: `MRR breakdown, ${name(last - 1)}`, head: ['Movement', 'Customers', 'MRR'], rows: mvRows(last - 1), empty: '' });
+
+  // Growth
+  const gr = mkSection('growth');
+  const L = V.leads;
+  kpiStrip(gr, [
+    { label: `New sign-ups in range`, value: fmtNum(sumOf(L.count)), delta: `${fmtNum(L.count[last])} in ${name(last)}${soFar(last)}` },
+    { label: `New paying customers in range`, value: fmtNum(sumOf(S.newCount)), delta: `${fmtNum(S.newCount[last])} in ${name(last)}${soFar(last)}` },
+    { label: `Sign-up to paid within 30 days, ${name(lastFull)}`, value: fmtPct(L.conversion[lastFull], 0), delta: `share of that ${per}’s sign-ups` },
+    { label: `Median days to first payment, ${name(lastFull)}`, value: L.medianDaysToPay[lastFull] == null ? '–' : `${L.medianDaysToPay[lastFull].toFixed(0)} days`, delta: 'from customer record to first renewal invoice' },
+  ]);
+  const g2 = document.createElement('div'); g2.className = 'grid'; gr.appendChild(g2);
+  chartCard(g2, { title: 'New sign-ups', note: `Customer records created in Subbly each ${per}`,
+    opts: { ...base, kind: 'bar', fmt: fmtNum, series: [{ label: 'Sign-ups', color: 'var(--s1)', values: L.count }] } });
+  chartCard(g2, { title: 'New paying customers', note: `Customers whose first subscription revenue started that ${per}`,
+    opts: { ...base, kind: 'bar', fmt: fmtNum, series: [{ label: 'New customers', color: 'var(--s1)', values: S.newCount }] } });
+  chartCard(g2, { title: 'Sign-up to paid within 30 days', note: `By the ${per} the customer signed up`,
+    opts: { ...base, kind: 'line', fmt: (v) => fmtPct(v, 0), series: [{ label: 'Converted', color: 'var(--s1)', values: L.conversion }] } });
+  chartCard(g2, { title: 'Median days to first payment', note: `For customers whose first subscription invoice landed that ${per}`,
+    opts: { ...base, kind: 'line', fmt: (v) => `${Math.round(v)} d`, series: [{ label: 'Median days', color: 'var(--s1)', values: L.medianDaysToPay }] } });
+
+  // Retention
+  const rt = mkSection('retention');
+  kpiStrip(rt, [
+    { label: `Customer churn, ${name(lastFull)}`, value: fmtPct(S.customerChurnRate[lastFull]), delta: `${fmtNum(S.churnCount[lastFull])} customers stopped paying` },
+    { label: `Net MRR churn, ${name(lastFull)}`, value: fmtPct(S.netMrrChurnRate[lastFull]), delta: 'negative means expansion outgrew losses' },
+    { label: `Gross MRR churn, ${name(lastFull)}`, value: fmtPct(S.grossMrrChurnRate[lastFull]), delta: 'churn plus contraction, before expansion' },
+    { label: `Churned in range`, value: fmtNum(sumOf(S.churnCount)), delta: `${money(-sumOf(S.churn))} MRR lost` },
+  ]);
+  const g3 = document.createElement('div'); g3.className = 'grid'; rt.appendChild(g3);
+  chartCard(g3, { title: 'Customer churn rate', note: `Paying customers at the start of each ${per} who stopped paying during it`,
+    opts: { ...base, kind: 'line', fmt: (v) => fmtPct(v), series: [{ label: 'Customer churn', color: 'var(--s1)', values: S.customerChurnRate }] } });
+  chartCard(g3, { title: 'MRR churn rate', note: `Share of each ${per}’s starting MRR lost; net subtracts expansion`,
+    opts: { ...base, kind: 'line', fmt: (v) => fmtPct(v), series: [
+      { label: 'Gross MRR churn', color: 'var(--s-orange)', values: S.grossMrrChurnRate },
+      { label: 'Net MRR churn', color: 'var(--s1)', values: S.netMrrChurnRate }] } });
+  // one blue ramp, spread evenly; the oldest start year is darkest
+  const ramp = ['#104281', '#1c5cab', '#2a78d6', '#5598e7', '#86b6ef', '#b7d3f6'];
+  const cohorts = V.mrrByCohort;
+  const shade = (i) => ramp[cohorts.length > 1 ? Math.round((i * (ramp.length - 1)) / (cohorts.length - 1)) : 2];
+  chartCard(g3, { title: 'MRR by year customers started', note: 'Each layer is the revenue still coming from that year’s new customers', wide: true,
+    opts: { ...base, kind: 'bar', stacked: true, fmt: money, axisFmt: moneyC, totalLabel: 'Total MRR',
+      series: cohorts.map((c, i) => ({ label: `Started ${c.year}`, color: shade(i), values: c.values })) } });
+  const offs = D.retentionOffsets;
+  const heatRows = D.retention.slice(-12).reverse().map((r) => `<tr><td class="name">${esc(r.cohort)}</td><td>${fmtNum(r.size)}</td>${r.cells.map((c) => {
+    if (c == null) return '<td></td>';
+    return `<td style="background:color-mix(in oklab, var(--seq-strong) ${Math.round(12 + c * 70)}%, var(--surface));color:${c > 0.55 ? '#fff' : 'var(--ink)'}">${Math.round(c * 100)}%</td>`;
+  }).join('')}</tr>`);
+  const heat = tableCard(g3, { title: 'Customers still paying, by start quarter', note: 'All history, whatever date range is selected: the share of each quarter’s new paying customers still paying after N months', wide: true,
+    head: ['Started', 'Customers', ...offs.map((o) => (o === 0 ? 'Start' : `${o} mo`))], rows: heatRows, empty: 'Retention appears once customers have a few months of history.' });
+  heat.querySelector('table')?.classList.add('heat');
+
+  // Cash flow
+  const cf = mkSection('cash');
+  const C = V.cash, F = V.failed;
+  kpiStrip(cf, [
+    { label: 'Cash collected in range', value: money(sumOf(C.recurring) + sumOf(C.other)), delta: `last 30 days ${money(H.cash30)} · ${delta(H.cash30, H.cashPrev30)}` },
+    { label: 'Failed charges in range', value: fmtNum(sumOf(F.count)), delta: `last 30 days ${fmtNum(H.failed30)} · ${delta(H.failed30, H.failedPrev30, 'lowerIsBetter')}` },
+    { label: 'Past due today', value: money(D.lists.pastDueTotal), delta: `${fmtNum(D.lists.pastDueCustomers)} customer${D.lists.pastDueCustomers === 1 ? '' : 's'} with unpaid invoices` },
+  ]);
+  const g4 = document.createElement('div'); g4.className = 'grid'; cf.appendChild(g4);
+  chartCard(g4, { title: 'Cash collected', note: `Paid invoices by the ${per} they were paid; refunds not included`, wide: true,
+    opts: { ...base, kind: 'bar', stacked: true, fmt: money, axisFmt: moneyC, totalLabel: 'Total',
+      series: [{ label: 'Subscriptions and add-ons', color: 'var(--s1)', values: C.recurring },
+        { label: 'One-off products, shipping and fees', color: 'var(--s-orange)', values: C.other }] } });
+  chartCard(g4, { title: 'Failed charges', note: 'Declined card payments, including retries',
+    opts: { ...base, kind: 'bar', fmt: fmtNum, series: [{ label: 'Failed charges', color: 'var(--s5)', values: F.count }],
+      extra: (i) => `<div class="row"><span>Amount</span><span class="num">${esc(money(F.amount[i]))}</span></div>` } });
+  tableCard(g4, { title: 'Past due customers', note: 'Unpaid invoices Subbly is still retrying', head: ['Customer', 'Due since', 'Owed', 'MRR'],
+    rows: D.lists.pastDue.map((p) => `<tr><td class="name">${esc(p.name)}</td><td>${dateLabel(p.since)}</td><td>${money(p.amount)}</td><td>${money(p.mrr)}</td></tr>`),
+    empty: 'No past due invoices.' });
+
+  // footer
+  const ct = D.counts;
+  $('foot').innerHTML = `<span>Figures in ${esc(CUR)}${ct.otherCurrencyInvoices ? ` · ${fmtNum(ct.otherCurrencyInvoices)} invoices in other currencies left out` : ''}</span>` +
+    `<span>From ${fmtNum(ct.customers)} customers, ${fmtNum(ct.subscriptions)} subscriptions, ${fmtNum(ct.invoices)} invoices, ${fmtNum(ct.failed)} failed charges</span>` +
+    `<span>Periods end at midnight UTC; weeks start Monday</span>`;
+  selectTab(activeTab);
+}
+
+function renderMeta() {
+  if (busy) return;
+  if (!meta || !meta.initialDone) {
+    $('firstRun').hidden = !!summary;
+    $('refreshBtn').hidden = true;
+    setChip('idle', meta && meta.status === 'syncing' ? 'First pull in progress elsewhere…' : 'No data pulled yet');
+    return;
+  }
+  $('firstRun').hidden = true;
+  $('refreshBtn').hidden = !mcp;
+  if (meta.status === 'syncing' && meta.syncStartedAt > nowS() - 900) setChip('busy', 'Someone else is refreshing…');
+  else if (meta.lastError) setChip('bad', `Refresh failed · data from ${ago(meta.lastSyncEnd)}`);
+  else setChip('good', `Updated ${ago(meta.lastSyncEnd)}`);
+}
+
+/* ---------- Subbly via the connector ---------- */
+async function call(tool, args) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await mcp.callTool(MERCHANT.server, tool, args, { cache: false });
+      let p = res.payload;
+      if (typeof p === 'string') p = JSON.parse(p);
+      return p;
+    } catch (e) {
+      if (attempt === 0 && e && e.retryable) { await sleep((e.retryAfterMs || 1500) + Math.random() * 800); continue; }
+      throw e;
+    }
+  }
+}
+async function pool(items, n, fn) {
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) await fn(items[i++]); }));
+}
+async function fetchAll(tool, args, step) {
+  const first = await call(tool, { ...args, perPage: 100, page: 1 });
+  const lastPage = (first.pagination && first.pagination.lastPage) || 1;
+  const out = [...(first.data || [])];
+  let done = 1;
+  progress(step, done, lastPage);
+  const pages = []; for (let p = 2; p <= lastPage; p++) pages.push(p);
+  await pool(pages, 4, async (page) => {
+    const r = await call(tool, { ...args, perPage: 100, page });
+    out.push(...(r.data || []));
+    progress(step, ++done, lastPage);
+  });
+  return out;
+}
+async function fetchNewest(tool, args, stopId, step) {
+  const out = [];
+  for (let page = 1; ; page++) {
+    const r = await call(tool, { ...args, perPage: 100, page });
+    const data = r.data || [];
+    out.push(...data);
+    progress(step, page, null);
+    if (!data.length || data.some((x) => x.id <= stopId) || page >= ((r.pagination && r.pagination.lastPage) || 1)) break;
+  }
+  return out.filter((x) => x.id > stopId);
+}
+function progress(step, done, total) {
+  const li = document.querySelector(`#steps li[data-step="${step}"]`);
+  if (li) {
+    li.querySelector('.state').textContent = total ? `page ${done} of ${total}` : `page ${done}`;
+    if (total && done >= total) li.setAttribute('data-done', '');
+  }
+  setChip('busy', `Refreshing ${step.toLowerCase()}${total ? ` · ${done}/${total}` : ''}…`);
+}
+function stepDone(step, text) {
+  const li = document.querySelector(`#steps li[data-step="${step}"]`);
+  if (li) { li.querySelector('.state').textContent = text; li.setAttribute('data-done', ''); }
+}
+
+/* ---------- the stored copy ---------- */
+// every chunk document in a collection, paged past the store's 1,000-per-query limit
+async function readCollection(col) {
+  const docs = [];
+  let lastKey = null;
+  for (;;) {
+    let q = db.collection(`${P}/${col}`).orderBy('k').limit(1000);
+    if (lastKey != null) q = q.where('k', '>', lastKey);
+    const snap = await q.get();
+    docs.push(...snap.docs);
+    if (snap.size < 1000) break;
+    lastKey = snap.docs[snap.docs.length - 1].data().k;
+    if (lastKey == null) break;
+  }
+  return docs;
+}
+async function loadStored() {
+  const out = {};
+  for (const col of Object.keys(COLS)) {
+    const docs = new Map(), byId = new Map();
+    for (const d of await readCollection(col)) {
+      const body = d.data();
+      docs.set(d.id, JSON.stringify(body.rows));
+      for (const r of body.rows) byId.set(r[0], r);
+    }
+    out[col] = { docs, rows: byId };
+  }
+  return out;
+}
+async function writeCollection(col, stored, byId) {
+  const chunks = SM.chunkRows([...byId.values()], COLS[col].created, COLS[col].per);
+  const writes = [];
+  for (const [id, list] of Object.entries(chunks)) {
+    const json = JSON.stringify(list);
+    if (stored.docs.get(id) !== json) writes.push(() => db.doc(`${P}/${col}/${id}`).set({ k: id, rows: list }));
+  }
+  for (const id of stored.docs.keys()) if (!(id in chunks)) writes.push(() => db.doc(`${P}/${col}/${id}`).delete());
+  await pool(writes, 3, (w) => w());
+  return writes.length;
+}
+function useRecords(st) {
+  const arr = (col) => [...st[col].rows.values()];
+  rows = { invoices: arr('inv'), subscriptions: arr('sub'), customers: arr('cust'), failed: arr('ftx') };
+  model = SM.prepare(rows);
+  model.loadedAt = nowS();
+}
+async function loadRecords() {
+  try {
+    useRecords(await loadStored());
+    syncControls(); render();
+  } catch (e) {
+    $('rangeNote').textContent = 'Date range unavailable: the stored records could not be read.';
+  }
+}
+const roundDeep = (o) => JSON.parse(JSON.stringify(o, (k, v) => (typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 10000) / 10000 : v)));
+const isoUtc = (t) => new Date(t * 1000).toISOString().slice(0, 19);
+
+async function sync() {
+  if (busy || !db || !mcp) return;
+  busy = true;
+  $('refreshBtn').disabled = true; $('pullBtn').disabled = true;
+  showNotice(null);
+  const lock = db.doc(`${P}/out/lock`);
+  let renew = null;
+  try {
+    const got = await lock.acquire({ holder: tabId, ttlMs: 180000 });
+    if (!got.acquired) { setChip('busy', 'Someone else is refreshing…'); return; }
+    renew = setInterval(() => lock.acquire({ holder: tabId, ttlMs: 180000 }).catch(() => {}), 60000);
+    const startedAt = nowS();
+    const metaRef = db.doc(P);
+    const m0 = (await metaRef.get()).data() || {};
+    const initial = !m0.initialDone;
+    await metaRef.set({ ...m0, merchant: MERCHANT.name, server: MERCHANT.server, status: 'syncing', syncStartedAt: startedAt });
+    const empty = () => ({ docs: new Map(), rows: new Map() });
+    const st = initial ? { cust: empty(), sub: empty(), inv: empty(), ftx: empty() } : await loadStored();
+    const put = (col, list, fn) => { for (const x of list) { const r = fn(x); st[col].rows.set(r[0], r); } };
+
+    if (initial) {
+      put('cust', await fetchAll('list_customers', {}, 'Customers'), SM.compactCustomer);
+      const subs = await fetchAll('list_subscriptions', {}, 'Subscriptions');
+      st.sub.rows = new Map(subs.map((s) => { const r = SM.compactSubscription(s); return [r[0], r]; }));
+      put('inv', await fetchAll('list_invoices', { sort: { field: 'id', direction: 'asc' } }, 'Invoices'), SM.compactInvoice);
+      put('ftx', await fetchAll('list_transactions', { status: 'failed' }, 'Failed charges'), SM.compactFailed);
+    } else {
+      const c = m0.cursors || {};
+      put('cust', await fetchNewest('list_customers', {}, c.cust || 0, 'Customers'), SM.compactCustomer);
+      put('ftx', await fetchNewest('list_transactions', { status: 'failed' }, c.ftx || 0, 'Failed charges'), SM.compactFailed);
+      const since = isoUtc((m0.lastSyncStart || startedAt) - 2 * DAY);
+      const recent = await fetchAll('list_invoices', { createdAt: { gte: since }, sort: { field: 'id', direction: 'asc' } }, 'Invoices');
+      const open = await fetchAll('list_invoices', { statuses: SM.OPEN_STATUSES }, 'Invoices');
+      const seen = new Set([...recent, ...open].map((x) => x.id));
+      const wasOpen = [...st.inv.rows.values()].filter((r) => SM.OPEN_STATUSES.includes(r[3]) && !seen.has(r[0])).map((r) => r[0]);
+      const changed = [];
+      await pool(wasOpen, 4, async (id) => {
+        const p = await call('get_invoice', { id });
+        changed.push(p && p.data && !Array.isArray(p.data) ? p.data : p);
+      });
+      put('inv', [...recent, ...open, ...changed.filter((x) => x && x.id)], SM.compactInvoice);
+      const subs = await fetchAll('list_subscriptions', {}, 'Subscriptions');
+      st.sub.rows = new Map(subs.map((s) => { const r = SM.compactSubscription(s); return [r[0], r]; }));
+    }
+
+    setChip('busy', 'Saving and calculating…');
+    let writes = 0;
+    for (const col of Object.keys(COLS)) writes += await writeCollection(col, st[col], st[col].rows);
+    useRecords(st);
+    const next = roundDeep(SM.compute({ ...rows, now: nowS() }));
+    await db.doc(`${P}/out/summary`).set(next);
+    const maxId = (list) => list.reduce((a, r) => Math.max(a, r[0]), 0);
+    const doneAt = nowS();
+    await metaRef.set({ merchant: MERCHANT.name, server: MERCHANT.server, status: 'idle', initialDone: true,
+      lastSyncStart: startedAt, lastSyncEnd: doneAt, lastError: null, syncStartedAt: startedAt,
+      cursors: { cust: maxId(rows.customers), ftx: maxId(rows.failed), inv: maxId(rows.invoices) },
+      counts: { customers: rows.customers.length, subscriptions: rows.subscriptions.length, invoices: rows.invoices.length, failed: rows.failed.length },
+      lastRun: { kind: initial ? 'full' : 'catch-up', seconds: doneAt - startedAt, documentsWritten: writes } });
+    stepDone('Saving', 'done');
+    summary = next; meta = (await metaRef.get()).data();
+    syncControls(); render();
+  } catch (e) {
+    showNotice(errorCopy(e), e && /reauth|not_connected|not_in_manifest|policy|approval/.test(e.code || '') ? 'warn' : 'bad');
+    try { await db.doc(P).update({ status: 'idle', lastError: { code: (e && e.code) || 'error', at: nowS() } }); } catch (x) {}
+  } finally {
+    if (renew) clearInterval(renew);
+    busy = false;
+    $('refreshBtn').disabled = false; $('pullBtn').disabled = false;
+    renderMeta();
+  }
+}
+$('refreshBtn').addEventListener('click', sync);
+$('pullBtn').addEventListener('click', sync);
+
+/* ---------- boot ---------- */
+async function boot() {
+  $('merchantName').textContent = MERCHANT.name;
+  $('serverName').textContent = MERCHANT.server;
+  setChip('idle', 'Loading saved data…');
+  const use = (n) => (window.claude && window.claude.use ? window.claude.use(n).catch(() => null) : Promise.resolve(null));
+  [db, mcp, perms] = await Promise.all([use('db'), use('mcp'), use('permissions')]);
+  if (!db) {
+    setChip('bad', 'Saved data unavailable');
+    showNotice('This dashboard keeps its data with the artifact. Open it in Claude to see it.', 'bad');
+    return;
+  }
+  let recordsRequested = false;
+  db.doc(`${P}/out/summary`).onSnapshot((snap) => {
+    if (busy) return;
+    summary = snap.exists ? snap.data() : null;
+    // first paint from the saved summary, then load the records the date range needs
+    if (summary && !recordsRequested) { recordsRequested = true; loadRecords(); }
+    else if (summary && model && snap.data().generatedAt > (model.loadedAt || 0)) loadRecords(); // someone else refreshed
+    syncControls(); render(); renderMeta();
+  }, () => {});
+  db.doc(P).onSnapshot((snap) => {
+    meta = snap.exists ? snap.data() : null;
+    renderMeta();
+    maybeAutoRefresh();
+  }, () => {});
+  if (!mcp) showNotice(`You can see the saved figures, but this view can't reach Subbly to refresh them.`);
+}
+let autoTried = false;
+async function maybeAutoRefresh() {
+  if (autoTried || busy || !mcp || !meta || !meta.initialDone) return;
+  if (meta.lastSyncEnd > nowS() - STALE_AFTER) return;
+  if (meta.status === 'syncing' && meta.syncStartedAt > nowS() - 900) return;
+  autoTried = true;
+  // only refresh unprompted when this viewer has already allowed the connector
+  const state = perms ? await perms.state(`mcp:${MERCHANT.server}`).catch(() => 'unavailable') : 'prompt';
+  if (state === 'granted') sync();
+}
+
+/* ---------- lock screen: a curtain, not security. Only a salted hash of the password is in the page.
+   Real access control is the artifact's sharing settings. ---------- */
+const LOCK_HASH = '__LOCK_HASH__'; // empty: no lock screen
+async function hashPass(p) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${MERCHANT.key}:${p}`));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+function unlock() {
+  $('lock').hidden = true;
+  $('app').hidden = false;
+  boot();
+}
+$('lockName').textContent = MERCHANT.name;
+if (LOCK_HASH) $('lock').hidden = false;
+let remembered = null;
+try { remembered = localStorage.getItem('sm-unlocked'); } catch (e) {}
+if (!LOCK_HASH || remembered === LOCK_HASH) unlock();
+else $('lockPass').focus();
+$('lockForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = $('lockPass');
+  let h = '';
+  try { h = await hashPass(input.value); } catch (x) {
+    $('lockErr').textContent = 'This browser can’t check the password. Try another browser.';
+    return;
+  }
+  if (h !== LOCK_HASH) {
+    $('lockErr').textContent = 'That password isn’t right. Check it and try again.';
+    input.select();
+    return;
+  }
+  try { localStorage.setItem('sm-unlocked', h); } catch (x) {}
+  input.value = '';
+  unlock();
+});
+})();
+</script>
